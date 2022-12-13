@@ -99,12 +99,13 @@ while abs(current_x - target_x) < 1 or abs(current_y - target_y) < 1:
         target_y = random.randint(0, 30)
 
 while not reached:
-    
+    print("\nNEW CLOCK CYCLE")
     print(f"current_x {current_x}, current_y {current_y}, current_z {current_z}")
     print(f"target_x {target_x}, target_y {target_y}, target_z 0")
     print(f"direction is {direction}")
     print(f"distance of x's is {abs(current_x - target_x)}")
     print(f"distance of y's is {abs(current_y - target_y)}")
+    print(f"landing is {landing}")
     ##############################
     ## Task A 
     ##############################
@@ -138,8 +139,8 @@ while not reached:
     ##############################
     # See if another aircraft is in the warning zone of the current aircraft
     # if there is another aircraft and that aircraft is at the warning zone boundary, then changes warning to True so that future task can execute maneuver
-    if other_aircraft and (other_x, other_y, other_z) in warning_cube:
-        warning = True
+    #if other_aircraft and (other_x, other_y, other_z) in warning_cube:
+    #    warning = True
 
 
     ##############################
@@ -172,6 +173,35 @@ while not reached:
         # According to this clock cycle, the aircraft will be landing in either the 0 or 180 degree direction since there is more distance to descent in the x-direction
         landing = "x"
 
+    ##############################
+    ## Task F
+    ##############################
+    # This task ensures that there is enough space to land in the x and y direction
+    # If landing = "x", and the altiitude z is greater than distance of the x-value from its target destination, then there is not enough room to land (same if landing = "Y" with y values)
+    if start_k == k and ((landing == "x" and current_z > abs(current_x - target_x)) or (landing == "y" and current_z > abs(current_y - target_y))):
+        if landing == "x":
+            # If landing in x-directions (0 or 180) then we need to move or rotate in one of those directions to give aircraft more space to land
+            if direction == 0:
+                current_x += 1
+            elif direction == 90:
+                direction = 0
+            elif direction == 180:
+                current_x -= 1
+            elif direction == 270:
+                direction = 0
+        elif landing == "y":
+            # If landing in y-directions (90 or 270) then we need to move or rotate in one of those directions to give aircraft more space to land
+            if direction == 0:
+                direction = 90
+            elif direction == 90:
+                current_y += 1
+            elif direction == 180:
+                direction = 90
+            elif direction == 270:
+                current_y -= 1
+        # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
+        k += 1
+
 
 
     ##############################
@@ -180,17 +210,18 @@ while not reached:
     # First, we want to prioritize the x and y values of the current location first
     # We first check which x or y distance is less than the distance from the target location and prioritize that direction first
     # Only perform an action if start_k == k, meaning that no action has been taken yet in this clock cycle
-    if start_k == k and (abs(current_x - target_x) < abs(current_y - target_y) or current_y == target_y): 
-        # Distance of the x's is less than the distance of the y's so we will prioritize the x position of the aircraft first
+    if start_k == k and (abs(current_x - target_x) < abs(current_y - target_y) or current_y == target_y) and  current_x != target_x and current_z != 0: 
+        # Distance of the x's is less than the distance of the y's so we will prioritize the x position of the aircraft first given that the current_x is not already at target x and z is not 0
         # This code now either changes the direction of flight or moves the aircraft in the positive or negative x-direction or begins descent if landing = "x" and conditions ready
         if landing == "x" and abs(current_x - target_x) == current_z and current_y == target_y:
             # landing state variable is in 0 or 180 direction and the descent distance is ideal since both x and z change values for descent, and the y-value is the same as the targest destination
-            # we descend by decrementing the z direction by 1 and then adjusting the direction of flight or changing the x-value as needed to get 0 or 180 degrees
-            current_z -= 1
+            # If needed, adjust the direction of flight or changing the x-value as needed to get 0 or 180 degrees
+            # If correct direction, then change x-value and decrement z-value
             if current_x < target_x:
                 # since the current_x is less than the target_x, we need to be in 0 degrees direction, so we either adjust direction angle by factor of 90 or if 0, then increment current_x
                 if direction == 0:
                     current_x += 1
+                    current_z -= 1
                 elif direction == 90:
                     direction = 0
                 elif direction == 180:
@@ -205,6 +236,7 @@ while not reached:
                     direction = 180
                 elif direction == 180:
                     current_x -= 1
+                    current_z -= 1
                 elif direction == 270:
                     direction == 180
             
@@ -237,19 +269,20 @@ while not reached:
         # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
         k += 1
 
-    elif start_k == k and (abs(current_y - target_y) < abs(current_x - target_x) or current_x == target_x): 
-        # Distance of the y's is less than the distance of the x's so now we prioritize the the y position of the aircraft
+    elif start_k == k and (abs(current_y - target_y) < abs(current_x - target_x) or current_x == target_x) and current_y != target_y and current_z != 0: 
+        # Distance of the y's is less than the distance of the x's so now we prioritize the the y position of the aircraft given that the current_y is not already at target y and z is not 0
         # This code now either changes the direction of flight or moves the aircraft in the positive or negative y-direction
         if landing == "y" and abs(current_y - target_y) == current_y and current_x == target_x:
             # landing state variable is in 90 or 270 direction and the descent distance is ideal since both y and z change values for descent, and the x-value is the same as the targest destination
-            # we descend by decrementing the z direction by 1 and then adjusting the direction of flight or changing the y-value as needed to get 90 or 270 degrees
-            current_z -= 1
+            # If needed, adjust the direction of flight or changing the x-value as needed to get 90 or 270 degrees
+            # If correct direction, then change x-value and decrement z-value
             if current_y < target_y:
                 # since the current_y is less than the target_y, we need to be in 90 degrees direction, so we either adjust direction angle by factor of 90 or if 90, then increment current_y
                 if direction == 0:
                     direction = 90
                 elif direction == 90:
                     current_y += 1
+                    current_z -= 1
                 elif direction == 180:
                     direction = 90
                 elif direction == 270:
@@ -264,6 +297,7 @@ while not reached:
                     direction = 270
                 elif direction == 270:
                     current_y -= 1
+                    current_z -= 1
         elif current_y < target_y:
             # if the current y position of the aircraft is less than the target y, then the aircraft should be in the 90 degrees direction
             # if the direction of flight is not already at 90 degrees, then change the direction by a factor of 90 degrees in order to be at 90 degrees or closer to it
@@ -290,6 +324,9 @@ while not reached:
                 current_y -= 1
         # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
         k += 1
+
+
+
     time.sleep(3)
 
 
