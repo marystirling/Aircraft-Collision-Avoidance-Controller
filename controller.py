@@ -1,4 +1,5 @@
 import time 
+import random # used to initialize the iniitial and target destinations of the aircraft
 
 ##############################
 ## Bounds on the x, y, z axis
@@ -31,9 +32,9 @@ target_y = 0
 # TODO: add other positions of aircraft for input
 
 # event(bool) type to indicate whether other aircraft are in the vicinity so we know whether we need to execute collision avoidance tasks
-    # if other_aircraft = 0, then there are no other aircraft in the vicinity
-    # if other_aircraft = 1, then there are 1 or more other aircraft in the vicinity
-other_aircraft = 0
+    # if other_aircraft = False, then there are no other aircraft in the vicinity
+    # if other_aircraft = True, then there are 1 or more other aircraft in the vicinity
+other_aircraft = False
 
 
 ##############################
@@ -45,19 +46,19 @@ other_aircraft = 0
 direction = 0
 
 # warning of type boolean to indicate whether another aircraft is in the warning cube dimensions of the aircraft in question
-    # if warning = 0, then no warning 
-    # if warning = 1, then warning meaning there is at least one aircraft in its vicinity at 2q boundary
-warning = 0
+    # if warning = False, then no warning 
+    # if warning = True, then warning meaning there is at least one aircraft in its vicinity at 2q boundary
+warning = False
 
 # danger of type boolean to indicate whether another aircraft is in the danger cube dimensions of the aircraft in question
-    # if danger = 0, then no danger
-    # if danger = 1, then danger meaning there is at least one aircraft in its vicinity at 2d boundary
-danger = 0
+    # if danger = False, then no danger
+    # if danger = True, then danger meaning there is at least one aircraft in its vicinity at 2d boundary
+danger = False
 
 # collision of type boolean to indicate whether there has been a collision with this aircraft
-    # if collision = 0, then no collision -> liveness properties ensures that this is always 0
-    # if collision = 1, then collision -> another aircraft within 2d boundary   
-collision = 0
+    # if collision = False, then no collision -> liveness properties ensures that this is always 0
+    # if collision = True, then collision -> another aircraft within 2d boundary   
+collision = False
 
 # k of type int to indicate what clock cycle the controller is going through
 # initialized as k = 0 since starting at the first clock cycle
@@ -82,14 +83,25 @@ reached = False
 
 
 ##############################
-## component logic
+## Initial and Target Positions
 ##############################
-other_x, other_y, other_z = 0, 0, 0 
-current_x, current_y, current_z = 0, 0, 0
-target_x, target_y = 10, 8
+# This randomizes the initial and target x and y values between the values of  0 and 30 (bounds) 
+current_x, current_y, target_x, target_y = random.randint(0, 30), random.randint(0, 30), random.randint(0, 30), random.randint(0, 30)
+current_z = 0
+print(f"curr_x {current_x}, target_x {target_x}, current_y {current_y}, target_y {target_y}")
+# Assumption that the takeoff and landing destinations must be at least 1 km apart since the initial position != target position
+# This loop ensures that this assumption remains true without having to manually set values each simulation
+while abs(current_x - target_x) < 1 or abs(current_y - target_y) < 1:
+    print(f"curr_x {current_x}, target_x {target_x}, current_y {current_y}, target_y {target_y}")
+    if abs(current_x - target_x) < 1:
+        target_x = random.randint(0, 30)
+    if abs(current_y - target_y) < 1:
+        target_y = random.randint(0, 30)
+
 while not reached:
     
     print(f"current_x {current_x}, current_y {current_y}, current_z {current_z}")
+    print(f"target_x {target_x}, target_y {target_y}, target_z 0")
     print(f"direction is {direction}")
     print(f"distance of x's is {abs(current_x - target_x)}")
     print(f"distance of y's is {abs(current_y - target_y)}")
@@ -225,7 +237,7 @@ while not reached:
         # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
         k += 1
 
-    elif start_k == k and (abs(current_y - target_y) < abs(current_x - target_x) or current_y == target_y): 
+    elif start_k == k and (abs(current_y - target_y) < abs(current_x - target_x) or current_x == target_x): 
         # Distance of the y's is less than the distance of the x's so now we prioritize the the y position of the aircraft
         # This code now either changes the direction of flight or moves the aircraft in the positive or negative y-direction
         if landing == "y" and abs(current_y - target_y) == current_y and current_x == target_x:
@@ -279,3 +291,22 @@ while not reached:
         # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
         k += 1
     time.sleep(3)
+
+
+    ##############################
+    ## Task G
+    ##############################
+    # Task that outputs the current x, y, and z values of the current aircraft
+    # all output of type int 
+    out_x = current_x
+    out_y = current_y
+    out_z = current_z
+    print(f"Output is ({out_x}, {out_y}, {out_z})")
+
+    ##############################
+    ## Task H
+    ##############################
+    # check whether the output (x, y, z) is equal to the target destination values
+    # if output (x, y, z) = target (x, y, 0), then state variable reached = True which breaks out of the loop (simulating the turning off of this aircraft controller)
+    if out_x == target_x and out_y == target_y and out_z == 0:
+        reached = True
