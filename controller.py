@@ -65,6 +65,13 @@ k = 0
 # initialized as start_k = 0 since starting at the first clock cycle
 start_k = 0
 
+# landing of type string tells which value will be decremented while landing (x or y)
+# the process of landing the aircraft decrements both the z-value and the x or y values so we want to be sure that there is enough distance from one to land successfully
+# if landing = x, then landing will occur in either the 0 or 180 degree direction
+# if landing = y, then landing will occur in either the 90 or 270 degree direction
+# landing is initialized to none since we do not the distances from the current location to the targest destination for both the x's and y's
+landing = None
+
 
 # reached of type boolean to indicate whether or not hte aircraft has reached its targest destination or not
 # initialized as reached = False since aircraft starts in a different location than its targest destination
