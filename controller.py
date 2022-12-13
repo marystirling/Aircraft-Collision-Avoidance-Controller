@@ -1,7 +1,3 @@
-import math # needed for calculating the Euclidean distance between two aircrafts
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 ##############################
 ## Bounds on the x, y, z axis
 ##############################
@@ -70,13 +66,19 @@ k = 0
 start_k = 0
 
 
+# reached of type boolean to indicate whether or not hte aircraft has reached its targest destination or not
+# initialized as reached = False since aircraft starts in a different location than its targest destination
+# when reached = True, aircraft controller will stop as the aircraft would have landed
+reached = False
+
+
 ##############################
 ## component logic
 ##############################
 other_x, other_y, other_z = 0, 0, 0 
 current_x, current_y, current_z = 0, 0, 0
-target_x, target_y = 1, 1 
-while True:
+target_x, target_y = 14, 39
+while not reached:
     
     print(f"current_x {current_x}, current_y {current_y}, current_z {current_z}")
 
@@ -123,8 +125,90 @@ while True:
     # This task simulates taking off of the current aircraft if k = 0 (meaning it is the first clock cycle)
     # Can only take off if there is no other aircraft in the warning zone 
     # Takes off while in the 0 degrees direction so the x and z value of the current location will increment by 1
-    # Increments start_k by 1 -> if other aircraft is in warning zone, this makes it wait for next clock cycle to still be k = 0 and wait for a clear takeoff
+    # If warning = True, then increment start_k to prevnt future moves this clock cycle and start_k will be reset at next clock cycle
+    # If warning = False, then increment k to indicate that a move has been made at this clock cycle 
     if k == 0:
-        current_x += 1
-        current_z += 1
-    
+        if not warning:
+            current_x += 1
+            current_z += 1
+            k = 1
+        elif warning:
+            start_k += 1
+
+
+    ##############################
+    ## Task E
+    ##############################
+    # This task focuses on the descent of the aircraft to its targest destination.
+    # Depending on the direction of the aircraft, descent decrements the z-value and either the x or y value of the aircraft
+    # Descent is ideal if the length from either the x or y distance from the current location to the targest destination equals the altitude (z-value)
+
+
+
+
+    ##############################
+    ## Task F
+    ##############################
+    # First, we want to prioritize the x and y values of the current location first
+    # We first check which x or y distance is less than the distance from the target location and prioritize that direction first
+    # Only perform an action if start_k == k, meaning that no action has been taken yet in this clock cycle
+    if start_k == k and abs(current_x - target_x) < abs(current_y - target_y): 
+        # Distance of the x's is less than the distance of the y's so we will prioritize the x position of the aircraft first
+        # This code now either changes the direction of flight or moves the aircraft in the positive or negative x-direction
+        if current_x < target_x:
+            # if the current x position of the aircraft is less than the target x, then the aircraft should be in the 0 degrees direction
+            # if the direction of flight is not already at 0 degrees, then change the direction by a factor of 90 degrees in order to be at 0 degrees or closer to it
+            # if the direction of flight was already at 0 degrees from the previous clock cycle, then move the aircraft in the x-direction by incrementing current_x by 1
+            if direction == 0:
+                current_x += 1
+            elif direction == 90:
+                direction = 0
+            elif direction == 180:
+                direction = 90
+            elif direction == 270:
+                direction = 0
+        elif current_x > target_x:
+            # if the current x position of the aircraft is greater than the target x, then the aircraft should be in the 180 degrees direction
+            # if the direction of flight is not already at 180 degrees, then change the direction by a factor of 90 degrees in order to be at 180 degrees or closer to it
+            # if the direction of flight was already at 180 degrees from the previous clock cycle, then move the aircraft in the x-direction by decrementing current_x by 1
+            if direction == 0:
+                direction = 90
+            elif direction == 90:
+                direction = 180
+            elif direction == 180:
+                current_x -= 1
+            elif direction == 270:
+                direction = 180
+           
+        # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
+        k += 1
+
+    elif start_k == k and abs(current_y - target_y) < abs(current_x - target_x): 
+        # Distance of the y's is less than the distance of the x's so now we prioritize the the y position of the aircraft
+        # This code now either changes the direction of flight or moves the aircraft in the positive or negative y-direction
+        if current_y < target_y:
+            # if the current y position of the aircraft is less than the target y, then the aircraft should be in the 90 degrees direction
+            # if the direction of flight is not already at 90 degrees, then change the direction by a factor of 90 degrees in order to be at 90 degrees or closer to it
+            # if the direction of flight was already at 90 degrees from the previous clock cycle, then move the aircraft in the y-direction by incrementing current_x by 1
+            if direction == 0:
+                direction = 90
+            elif direction == 90:
+                current_y += 1
+            elif direction == 180:
+                direction = 90
+            elif direction == 270:
+                direction = 0
+        elif current_y > target_y:
+            # if the current y position of the aircraft is greater than the target y, then the aircraft should be in the 270 degrees direction
+            # if the direction of flight is not already at 270 degrees, then change the direction by a factor of 90 degrees in order to be at 270 degrees or closer to it
+            # if the direction of flight was already at 270 degrees from the previous clock cycle, then move the aircraft in the y-direction by decrementing current_y by 1
+            if direction == 0:
+                direction = 270
+            elif direction == 90:
+                direction = 0
+            elif direction == 180:
+                direction = 270
+            elif direction == 270:
+                current_y -= 1
+        # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
+        k += 1
