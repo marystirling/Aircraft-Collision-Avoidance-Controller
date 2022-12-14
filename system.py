@@ -8,7 +8,7 @@ from controller import Controller # import class Controller from controller.py i
 ##############################
 # Change the value of "n" from 1 to max?? to designate the number of planes in simulation
 # TODO: change this as the input later on to be more interactive
-n = 2
+n = 15
 
 
 
@@ -97,6 +97,8 @@ if __name__ == '__main__':
     plane_ids, all_reached = get_plane_info()
     plane_controllers = get_controllers(plane_ids)
 
+    other_aircraft = {}
+
     # The synchronous system will keep running until all planes have reached their target destination
     while not all(value == True for value in all_reached.values()):
         for i, plane in enumerate(plane_controllers):
@@ -104,12 +106,17 @@ if __name__ == '__main__':
             current_x, current_y, current_z = current_locations[plane_ids[i]]
             if all_reached[plane_ids[i]] == False:
                 # Runs if that plane_id has not reached its target destination
-                print(f"PLANE RUNNING IS {plane_ids[i]}")
+                print(f"\nPLANE RUNNING IS {plane_ids[i]}")
+                if plane_ids[i] in other_aircraft.keys():
+                    del other_aircraft[plane_ids[i]]
                 # input for that controller with plane_id with the correct inputs as arguments and the returned variables as the output
-                reached, out_x, out_y, out_z = plane.ClockCycle(current_x, current_y, current_z, target_x, target_y)
+                reached, out_x, out_y, out_z = plane.ClockCycle(current_x, current_y, current_z, target_x, target_y, other_aircraft)
                 # update the current location of that plane_id so that it can be the input for the next clock cycle for that controller
                 current_locations[plane_ids[i]] = (out_x, out_y, out_z)
+                other_aircraft[plane_ids[i]] = (out_x, out_y, out_z)
                 if reached == True:
                     # if that plane_id has reached its targest destination, then change its value as True in all_reached
+                    # we then want to take that plane_id out of messaging its location with other plane_id
+                    del other_aircraft[plane_ids[i]]
                     all_reached[plane_ids[i]] = True
     print("All planes have reached their target destination without collision.")            

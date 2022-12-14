@@ -84,10 +84,10 @@ class Controller:
 
 
        
-    def ClockCycle(self, current_x, current_y, current_z, target_x, target_y):
-        other_x, other_y, other_z = -1000, -1000, -1000
-        #while not reached:
-        print("\nNEW CLOCK CYCLE")
+    def ClockCycle(self, current_x, current_y, current_z, target_x, target_y, other_aircraft):
+        print(f"other aircraft: {other_aircraft}")
+
+        print("NEW CLOCK CYCLE")
         print(f"k is {self.k}")
         print(f"current_x {current_x}, current_y {current_y}, current_z {current_z}")
         print(f"target_x {target_x}, target_y {target_y}, target_z 0")
@@ -121,16 +121,22 @@ class Controller:
                         (current_x + 1, current_y + y, current_z + z),
                     ])
         warning_cube.remove((current_x, current_y, current_z))
-        print(warning_cube)
-        #print(f"other (x, y, z) is ({other_x}, {other_y}, {other_z})")
+        
 
-
-
+        
         ##############################
         ## Task C
         ##############################
         # This reports that a collision has occured
         # Collision occurs if aircraft goes within the warning zone, so if the current aircraft coordinates equal another 
+        # This is purely for testing purposes
+        for coordinate in other_aircraft.values():
+            # OUR SYSTEM ENSURES THAT THERE ARE NO COLLISIONS SO THIS SHOULD NEVER BE TRUE
+            if coordinate == (current_x, current_y, current_z):
+                print("COLLISION")
+                self.collision = True
+                if self.collision:
+                    exit()
 
 
         ##############################
@@ -141,15 +147,15 @@ class Controller:
         # It also keeps track of the (x,y,z) coordinates of those aircraft in the list warning_coordinates
         # warning_coordinates resets back to empty list each clock cycle to remove any coordinate points not in warning zone anymore
         warning_coordinates = []
-        if other_aircraft and (other_x, other_y, other_z) in warning_cube:
-            warning = True
-            warning_coordinates.append((other_x, other_y, other_z))
-        else:
-            warning = False
-        print(f"warning is {warning}")
-        #warning_coordinates.append((2, 0, 3))
-        #warning_coordinates.append((2, 0, 1))
-        #warning_coordinates.append((2, 0, 2))
+        self.warning = False
+        for coordinate in other_aircraft.values():
+            if coordinate in warning_cube:
+                self.warning = True
+                warning_coordinates.append(coordinate)
+                print("THERE IS A WARNING")
+ 
+        
+        print(f"warning is {self.warning}")
         print(f"warning coordinates is {warning_coordinates}")
         
 
@@ -160,7 +166,8 @@ class Controller:
         # It looks at the coordinates in warning_coordinates
         # Collision maneuvers will only occur if there is a plane on the same z-valued altitude in warning_coordinates
         # If there is some aircraft in the same z-valued altitude as the current aircraft than it will change warning_break_flag to false to signal a maneuver action is necessary
-        if warning:
+        if self.warning:
+            print("MANEUVERING AROUND WARNING")
             # If warning_break_flag stays True, then there is no other aircraft in the warning zone on the same z-altitude, so resume normal operations
             warning_break_flag = True
             for point in warning_coordinates:
@@ -185,7 +192,8 @@ class Controller:
                         current_z += 1
                     else:
                         self.direction = 90
-                elif direction == 90:
+                        print("changed direction to 90")
+                elif self.direction == 90:
                     if ((current_x, current_y + 1, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x, current_y + 1, current_z - 1) == (target_x, target_y, 0):
                         current_y += 1
                         current_z -= 1
@@ -196,7 +204,8 @@ class Controller:
                         current_z += 1
                     else:
                         self.direction = 0
-                elif direction == 180:
+                        print("changed direction to 0")
+                elif self.direction == 180:
                     if ((current_x - 1, current_y, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x - 1, current_y, current_z - 1) == (target_x, target_y, 0):
                         current_x -= 1
                         current_z -= 1
@@ -207,6 +216,7 @@ class Controller:
                         current_z += 1
                     else:
                         self.direction = 90
+                        print("changed direction to 90")
                 elif self.direction == 270:               
                     if ((current_x, current_y - 1, current_z -  1) not in warning_coordinates and current_z > 1) or (current_x, current_y - 1, current_z - 1) == (target_x, target_y, 0):
                         current_y -= 1
@@ -218,8 +228,12 @@ class Controller:
                         current_z += 1
                     else:
                         self.direction = 0 
+                        print("changed direction to 0")
                 # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
                 self.k += 1
+                
+                print(f"new current is ({current_x}, {current_y}, {current_z})")
+                print(time.sleep(8))
 
 
 
@@ -232,13 +246,13 @@ class Controller:
         # If warning = True, then increment start_k to prevnt future moves this clock cycle and start_k will be reset at next clock cycle
         # If warning = False, then increment k to indicate that a move has been made at this clock cycle 
         if self.k == 0:
-            if not warning:
+            if not self.warning:
                 current_x += 1
                 current_z += 1
                 self.k = 1
-            elif warning:
+            elif self.warning:
                 self.start_k += 1
-                print("is this where it is stopping")
+
 
 
         ##############################
@@ -409,7 +423,7 @@ class Controller:
 
 
 
-        time.sleep(1)
+        #time.sleep(1)
 
 
         ##############################
@@ -421,6 +435,7 @@ class Controller:
         out_y = current_y
         out_z = current_z
         print(f"Output is ({out_x}, {out_y}, {out_z})")
+        print(f"directin is {self.direction}")
 
         ##############################
         ## Task J
