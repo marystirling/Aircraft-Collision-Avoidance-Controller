@@ -1,7 +1,6 @@
 import random # used to randomize initial current and target values instead of manual assignments
-#import controller
-from controller import Controller
-#from controller import init
+
+from controller import Controller # import class Controller from controller.py in same directory
 
 
 ##############################
