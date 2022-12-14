@@ -98,6 +98,11 @@ while abs(current_x - target_x) < 1 or abs(current_y - target_y) < 1:
     if abs(current_y - target_y) < 1:
         target_y = random.randint(0, 30)
 
+#current_x, current_y, current_z = 1, 0, 2
+#current_x, current_y, current_z = 0, 0, 0
+other_x, other_y, other_z = 1, 0, 1
+other_aircraft = True
+
 while not reached:
     print("\nNEW CLOCK CYCLE")
     print(f"current_x {current_x}, current_y {current_y}, current_z {current_z}")
@@ -132,19 +137,100 @@ while not reached:
                 (current_x + 1, current_y + y, current_z + z),
             ])
     warning_cube.remove((current_x, current_y, current_z))
-
-
+    print(warning_cube)
+    print(f"other (x, y, z) is ({other_x}, {other_y}, {other_z})")
     ##############################
     ## Task C
     ##############################
     # See if another aircraft is in the warning zone of the current aircraft
     # if there is another aircraft and that aircraft is at the warning zone boundary, then changes warning to True so that future task can execute maneuver
-    #if other_aircraft and (other_x, other_y, other_z) in warning_cube:
-    #    warning = True
-
+    # It also keeps track of the (x,y,z) coordinates of those aircraft in the list warning_coordinates
+    # warning_coordinates resets back to empty list each clock cycle to remove any coordinate points not in warning zone anymore
+    warning_coordinates = []
+    if other_aircraft and (other_x, other_y, other_z) in warning_cube:
+        warning = True
+        warning_coordinates.append((other_x, other_y, other_z))
+    else:
+        warning = False
+    print(f"warning is {warning}")
+    #warning_coordinates.append((2, 0, 3))
+    #warning_coordinates.append((2, 0, 1))
+    #warning_coordinates.append((2, 0, 2))
+    print(f"warning coordinates is {warning_coordinates}")
+    
 
     ##############################
     ## Task D
+    ##############################
+    # This task simulates a potential collision avoidance maneuver if there is another aircraft and a warning. 
+    # It looks at the coordinates in warning_coordinates
+    # Collision maneuvers will only occur if there is a plane on the same z-valued altitude in warning_coordinates
+    # If there is some aircraft in the same z-valued altitude as the current aircraft than it will change warning_break_flag to false to signal a maneuver action is necessary
+    if warning:
+        # If warning_break_flag stays True, then there is no other aircraft in the warning zone on the same z-altitude, so resume normal operations
+        warning_break_flag = True
+        for point in warning_coordinates:
+            if point[2] == current_z:
+                warning_break_flag = False
+                # If this is changed to False, then need to perform some collision maneuver
+                # Else, the aircraft will resume to normal actions 
+        if not warning_break_flag: 
+        #First, check direction plane is in, then perform the necessary maneuver in order of this precedence: 
+            # 1. If the altitude is greater than 1 and the location to descend one space is free, then do so. Or, if the next descent is the target location, then land
+            # 2. If the next space forward in direction flying is free on same z-value, then move forward by one coordinate space in x or y direction (depends on direction)
+            # 3. If the coordinate space for the aircraft to ascend by one coordinate space is available, then fly aircraft in upward direction
+            # 4. If all of these spaces are in warning_coordinates for the current direction, then change direction by a factor of 90
+            if direction == 0:
+                if ((current_x + 1, current_y, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x + 1, current_y, current_z - 1) == (target_x, target_y, 0):
+                    current_x += 1
+                    current_z -= 1
+                elif  (current_x + 1, current_y, current_z) not in warning_coordinates:
+                    current_x += 1
+                elif (current_x + 1, current_y, current_z + 1) not in warning_coordinates:
+                    current_x += 1
+                    current_z += 1
+                else:
+                    direction = 90
+            elif direction == 90:
+                if ((current_x, current_y + 1, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x, current_y + 1, current_z - 1) == (target_x, target_y, 0):
+                    current_y += 1
+                    current_z -= 1
+                elif (current_x, current_y + 1, current_z) not in warning_coordinates:
+                    current_y += 1
+                elif (current_x, current_y + 1, current_z + 1) not in warning_coordinates:
+                    current_y += 1
+                    current_z += 1
+                else:
+                    direction = 0
+            elif direction == 180:
+                if ((current_x - 1, current_y, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x - 1, current_y, current_z - 1) == (target_x, target_y, 0):
+                    current_x -= 1
+                    current_z -= 1
+                elif (current_x - 1, current_y, current_z) not in warning_coordinates:
+                    current_x -= 1
+                elif (current_x - 1, current_y, current_z + 1) not in warning_coordinates:
+                    current_x -= 1
+                    current_z += 1
+                else:
+                    direction = 90
+            elif direction == 270:               
+                if ((current_x, current_y - 1, current_z -  1) not in warning_coordinates and current_z > 1) or (current_x, current_y - 1, current_z - 1) == (target_x, target_y, 0):
+                    current_y -= 1
+                    current_z -= 1
+                elif (current_x, current_y - 1, current_z) not in warning_coordinates:
+                    current_y -= 1
+                elif (current_x, current_y - 1, current_z + 1) not in warning_coordinates:
+                    current_y -= 1
+                    current_z += 1
+                else:
+                    direction = 0 
+            # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
+            k += 1
+
+
+
+    ##############################
+    ## Task E
     ##############################
     # This task simulates taking off of the current aircraft if k = 0 (meaning it is the first clock cycle)
     # Can only take off if there is no other aircraft in the warning zone 
@@ -158,10 +244,11 @@ while not reached:
             k = 1
         elif warning:
             start_k += 1
+            print("is this where it is stopping")
 
 
     ##############################
-    ## Task E
+    ## Task F
     ##############################
     # This task focuses on the descent of the aircraft to its targest destination.
     # Depending on the direction of the aircraft, descent decrements the z-value and either the x or y value of the aircraft
@@ -174,7 +261,7 @@ while not reached:
         landing = "x"
 
     ##############################
-    ## Task F
+    ## Task G
     ##############################
     # This task ensures that there is enough space to land in the x and y direction
     # If landing = "x", and the altiitude z is greater than distance of the x-value from its target destination, then there is not enough room to land (same if landing = "Y" with y values)
@@ -205,7 +292,7 @@ while not reached:
 
 
     ##############################
-    ## Task F
+    ## Task H
     ##############################
     # First, we want to prioritize the x and y values of the current location first
     # We first check which x or y distance is less than the distance from the target location and prioritize that direction first
@@ -327,21 +414,20 @@ while not reached:
 
 
 
-    time.sleep(3)
+    time.sleep(2)
 
 
     ##############################
-    ## Task G
+    ## Task I
     ##############################
     # Task that outputs the current x, y, and z values of the current aircraft
     # all output of type int 
     out_x = current_x
     out_y = current_y
     out_z = current_z
-    print(f"Output is ({out_x}, {out_y}, {out_z})")
 
     ##############################
-    ## Task H
+    ## Task J
     ##############################
     # check whether the output (x, y, z) is equal to the target destination values
     # if output (x, y, z) = target (x, y, 0), then state variable reached = True which breaks out of the loop (simulating the turning off of this aircraft controller)
