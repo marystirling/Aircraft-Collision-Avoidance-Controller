@@ -139,6 +139,16 @@ while not reached:
     warning_cube.remove((current_x, current_y, current_z))
     print(warning_cube)
     print(f"other (x, y, z) is ({other_x}, {other_y}, {other_z})")
+
+
+
+    ##############################
+    ## Task C
+    ##############################
+    # This reports that a collision has occured
+    # Collision occurs if aircraft goes within the warning zone, so if the current aircraft coordinates equal another 
+
+
     ##############################
     ## Task C
     ##############################
@@ -425,6 +435,7 @@ while not reached:
     out_x = current_x
     out_y = current_y
     out_z = current_z
+    print(f"Output is ({out_x}, {out_y}, {out_z}")
 
     ##############################
     ## Task J
