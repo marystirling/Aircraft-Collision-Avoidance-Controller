@@ -431,4 +431,4 @@ class Controller:
             self.reached = True
             print("finished")
         
-        return self.reached, current_x, current_y, current_z
+        return self.reached, out_x, out_y, out_z

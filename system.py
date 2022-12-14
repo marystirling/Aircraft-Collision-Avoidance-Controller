@@ -107,9 +107,9 @@ if __name__ == '__main__':
                 # Runs if that plane_id has not reached its target destination
                 print(f"PLANE RUNNING IS {plane_ids[i]}")
                 # input for that controller with plane_id with the correct inputs as arguments and the returned variables as the output
-                reached, current_x, current_y, current_z = plane.ClockCycle(current_x, current_y, current_z, target_x, target_y)
+                reached, out_x, out_y, out_z = plane.ClockCycle(current_x, current_y, current_z, target_x, target_y)
                 # update the current location of that plane_id so that it can be the input for the next clock cycle for that controller
-                current_locations[plane_ids[i]] = (current_x, current_y, current_z)
+                current_locations[plane_ids[i]] = (out_x, out_y, out_z)
                 if reached == True:
                     # if that plane_id has reached its targest destination, then change its value as True in all_reached
                     all_reached[plane_ids[i]] = True
