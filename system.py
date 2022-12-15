@@ -7,15 +7,15 @@ from controller import Controller # import class Controller from controller.py i
 ## Assign Number of Planes
 ##############################
 # Change the value of "n" from 1 to max?? to designate the number of planes in simulation
-# TODO: change this as the input later on to be more interactive
-n = 15
+# max value is 50 to prevent too much congestion since area is 50 km by 50 km
+n = int(input("Enter the number of planes to run in the simulation (max is 50): "))
 
 
 
 ################################
 ## Initial and Target Positions
 ################################
-# This randomizes the initial and target x and y values between the values of  0 and 30 (bounds) 
+# This randomizes the initial and target x and y values between the values of  0 and 50 (bounds) 
 # Returns two dictionarys:
     # current_locations = {"plane_#": (current_x, current_y, current_z), ...}
     # target_locations = {"plane_#": (target_x, target_y), ...} *** all target_z will be 0 since landing on ground
@@ -26,7 +26,7 @@ def random_initials():
     target_locations = {}
     # loop through each plane from 1 to n (number of planes)
     for i in range(1, n + 1):
-        current_x, current_y, target_x, target_y = random.randint(0, 30), random.randint(0, 30), random.randint(0, 30), random.randint(0, 30)
+        current_x, current_y, target_x, target_y = random.randint(0, 50), random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)
         current_z = 0
         print(f"curr_x {current_x}, target_x {target_x}, current_y {current_y}, target_y {target_y}")
         # Assumption that the takeoff and landing destinations must be at least 1 km apart since the initial position != target position
@@ -34,21 +34,21 @@ def random_initials():
         while abs(current_x - target_x) < 1 or abs(current_y - target_y) < 1:
             print(f"current_x {current_x}, target_x {target_x}, current_y {current_y}, target_y {target_y}")
             if abs(current_x - target_x) < 1:
-                target_x = random.randint(0, 30)
+                target_x = random.randint(0, 50)
             if abs(current_y - target_y) < 1:
-                target_y = random.randint(0, 30)
+                target_y = random.randint(0, 50)
         # This loop statement ensures that all current starting locations and target locations is unique. If not, reassign numbers until unique
         while (current_x, current_y, current_z) in current_locations.values() or (target_x, target_y) in target_locations.values():
-            current_x, current_y, target_x, target_y = random.randint(0, 30), random.randint(0, 30), random.randint(0, 30), random.randint(0, 30)
+            current_x, current_y, target_x, target_y = random.randint(0, 50), random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)
             current_z = 0
             # Assumption that the takeoff and landing destinations must be at least 1 km apart since the initial position != target position
             # This loop ensures that this assumption remains true without having to manually set values each simulation
             while abs(current_x - target_x) < 1 or abs(current_y - target_y) < 1:
                 print(f"current_x {current_x}, target_x {target_x}, current_y {current_y}, target_y {target_y}")
                 if abs(current_x - target_x) < 1:
-                    target_x = random.randint(0, 30)
+                    target_x = random.randint(0, 50)
                 if abs(current_y - target_y) < 1:
-                    target_y = random.randint(0, 30)
+                    target_y = random.randint(0, 50)
         # add the unique current starting position to current_locations dictionary for that specific plane
         current_locations["plane_{0}".format(i)] = (current_x, current_y, current_z)
         # add the unique target destination to target_locations dictionary for that specific plane

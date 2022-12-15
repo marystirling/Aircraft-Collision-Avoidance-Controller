@@ -1,40 +1,4 @@
 import time 
-import random # used to initialize the iniitial and target destinations of the aircraft
-
-##############################
-## Bounds on the x, y, z axis
-##############################
-# bound values of the aircraft controller space for x, y, and z 
-# 0 <= x, y, z <= 30
-min_x = 0
-max_x = 30
-min_y = 0
-max_y = 30
-min_z = 0
-max_z = 30
-
-##############################
-## Input Variables
-##############################
-
-# id of type string that is unique for each aircraft in the form plane_n, where n is an integer starting at 0 and incremented by 1 each new plane in vicinity
-id = ""
-
-# x, y, z coordinates of type int of the current location of the aircraft in question
-current_x = 0
-current_y = 0
-current_z = 0
-
-# target x and y coordiantes of type int for the landing location of the aircraft in question -> no z since all target destination will be on ground with z = 0
-target_x = 0
-target_y = 0
-
-# TODO: add other positions of aircraft for input
-
-# event(bool) type to indicate whether other aircraft are in the vicinity so we know whether we need to execute collision avoidance tasks
-    # if other_aircraft = False, then there are no other aircraft in the vicinity
-    # if other_aircraft = True, then there are 1 or more other aircraft in the vicinity
-other_aircraft = False
 
 class Controller:
     def __init__(self):
@@ -82,6 +46,16 @@ class Controller:
         # when reached = True, aircraft controller will stop as the aircraft would have landed
         self.reached = False
 
+        # warning_cube is a list of tuple (x, y, z) coordinates to indiciate the coordinates around the current aircraft that are potential warning points
+        # initialized as an empty list, but reset every clock cycle to collect the (x,y,z) points that are in the warning zone of the current aircraft
+        # used to compare to other aircraft coordinates to see if there is a match in order to perform a collision avoidance maneuver
+        self.warning_cube = []
+
+        # warning_coordinates is a list of tuple (x, y, z) coordinates to indicate if another aircraft is in the warning zone of the current aircraft
+        # initialized as an empty list, but reset every clock cycle to collect the (x,y,z) points if another aircraft matches a coordinate in warning_cube
+        # if the list is nonempty at a clock cycle, then a collision avoidance maneuver is needed
+        self.warning_coordinates = []
+
 
        
     def ClockCycle(self, current_x, current_y, current_z, target_x, target_y, other_aircraft):
@@ -112,15 +86,15 @@ class Controller:
         # Given the current position, it generates the boundary of the warning zone which is a cube with edges of 2 km and the current aircraft at the center as (current_x, current_y, current_z)
         # Since each edge is 2 km, the warning zone is one coordinate space away from current aircraft or its vertices since 1 coordinate point moves 1 km at a time
         # Creates a list of the cube edge and vertices point called warning_cube
-        warning_cube = []
+        self.warning_cube = []
         for z in  range(-1,2):
                 for y in range(-1, 2):
-                    warning_cube.extend([
+                    self.warning_cube.extend([
                         (current_x - 1, current_y + y, current_z + z),
                         (current_x, current_y + y, current_z + z),
                         (current_x + 1, current_y + y, current_z + z),
                     ])
-        warning_cube.remove((current_x, current_y, current_z))
+        self.warning_cube.remove((current_x, current_y, current_z))
         
 
         
@@ -146,17 +120,17 @@ class Controller:
         # if there is another aircraft and that aircraft is at the warning zone boundary, then changes warning to True so that future task can execute maneuver
         # It also keeps track of the (x,y,z) coordinates of those aircraft in the list warning_coordinates
         # warning_coordinates resets back to empty list each clock cycle to remove any coordinate points not in warning zone anymore
-        warning_coordinates = []
+        self.warning_coordinates = []
         self.warning = False
         for coordinate in other_aircraft.values():
-            if coordinate in warning_cube:
+            if coordinate in self.warning_cube:
                 self.warning = True
-                warning_coordinates.append(coordinate)
+                self.warning_coordinates.append(coordinate)
                 print("THERE IS A WARNING")
  
         
         print(f"warning is {self.warning}")
-        print(f"warning coordinates is {warning_coordinates}")
+        print(f"warning coordinates is {self.warning_coordinates}")
         
 
         ##############################
@@ -165,75 +139,75 @@ class Controller:
         # This task simulates a potential collision avoidance maneuver if there is another aircraft and a warning. 
         # It looks at the coordinates in warning_coordinates
         # Collision maneuvers will only occur if there is a plane on the same z-valued altitude in warning_coordinates
-        # If there is some aircraft in the same z-valued altitude as the current aircraft than it will change warning_break_flag to false to signal a maneuver action is necessary
+        # To see if there is one, we change warning back to False and only change it back to True if z-values match the current aircraft's coordinate
         if self.warning:
             print("MANEUVERING AROUND WARNING")
-            # If warning_break_flag stays True, then there is no other aircraft in the warning zone on the same z-altitude, so resume normal operations
-            warning_break_flag = True
-            for point in warning_coordinates:
+            # If warning_break_flag stays False, then there is no other aircraft in the warning zone on the same z-altitude, so resume normal operations
+            self.warning = False
+            for point in self.warning_coordinates:
                 if point[2] == current_z:
-                    warning_break_flag = False
-                    # If this is changed to False, then need to perform some collision maneuver
+                    self.warning = True
+                    # If this is changed vback to True, then need to perform some collision maneuver
                     # Else, the aircraft will resume to normal actions 
-            if not warning_break_flag: 
+            if self.warning: 
+                print("are we maneuvering")
             #First, check direction plane is in, then perform the necessary maneuver in order of this precedence: 
                 # 1. If the altitude is greater than 1 and the location to descend one space is free, then do so. Or, if the next descent is the target location, then land
                 # 2. If the next space forward in direction flying is free on same z-value, then move forward by one coordinate space in x or y direction (depends on direction)
                 # 3. If the coordinate space for the aircraft to ascend by one coordinate space is available, then fly aircraft in upward direction
                 # 4. If all of these spaces are in warning_coordinates for the current direction, then change direction by a factor of 90
                 if self.direction == 0:
-                    if ((current_x + 1, current_y, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x + 1, current_y, current_z - 1) == (target_x, target_y, 0):
+                    if (current_x + 1, current_y, current_z - 1) == (target_x, target_y, 0):
                         current_x += 1
                         current_z -= 1
-                    elif  (current_x + 1, current_y, current_z) not in warning_coordinates:
-                        current_x += 1
-                    elif (current_x + 1, current_y, current_z + 1) not in warning_coordinates:
+                        print("why is this going wrong")
+                    elif (current_x + 1, current_y, current_z + 1) not in self.warning_coordinates:
                         current_x += 1
                         current_z += 1
+                    elif  (current_x + 1, current_y, current_z) not in self.warning_coordinates:
+                        current_x += 1
                     else:
                         self.direction = 90
-                        print("changed direction to 90")
                 elif self.direction == 90:
-                    if ((current_x, current_y + 1, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x, current_y + 1, current_z - 1) == (target_x, target_y, 0):
+                    if (current_x, current_y + 1, current_z - 1) == (target_x, target_y, 0):
                         current_y += 1
                         current_z -= 1
-                    elif (current_x, current_y + 1, current_z) not in warning_coordinates:
-                        current_y += 1
-                    elif (current_x, current_y + 1, current_z + 1) not in warning_coordinates:
+                        print(f"why is this going wrong since {(current_x, current_y + 1, current_z -1)}")
+                    elif (current_x, current_y + 1, current_z + 1) not in self.warning_coordinates:
                         current_y += 1
                         current_z += 1
+                    elif (current_x, current_y + 1, current_z) not in self.warning_coordinates:
+                        current_y += 1
                     else:
                         self.direction = 0
-                        print("changed direction to 0")
                 elif self.direction == 180:
-                    if ((current_x - 1, current_y, current_z - 1) not in warning_coordinates and current_z > 1) or (current_x - 1, current_y, current_z - 1) == (target_x, target_y, 0):
+                    if  (current_x - 1, current_y, current_z - 1) == (target_x, target_y, 0):
                         current_x -= 1
                         current_z -= 1
-                    elif (current_x - 1, current_y, current_z) not in warning_coordinates:
-                        current_x -= 1
-                    elif (current_x - 1, current_y, current_z + 1) not in warning_coordinates:
+                        print("why is this goign wrong")
+                    elif (current_x - 1, current_y, current_z + 1) not in self.warning_coordinates:
                         current_x -= 1
                         current_z += 1
+                    elif (current_x - 1, current_y, current_z) not in self.warning_coordinates:
+                        current_x -= 1
                     else:
                         self.direction = 90
-                        print("changed direction to 90")
                 elif self.direction == 270:               
-                    if ((current_x, current_y - 1, current_z -  1) not in warning_coordinates and current_z > 1) or (current_x, current_y - 1, current_z - 1) == (target_x, target_y, 0):
+                    if  (current_x, current_y - 1, current_z - 1) == (target_x, target_y, 0):
                         current_y -= 1
                         current_z -= 1
-                    elif (current_x, current_y - 1, current_z) not in warning_coordinates:
-                        current_y -= 1
-                    elif (current_x, current_y - 1, current_z + 1) not in warning_coordinates:
+                        print("why is this going")
+                    elif (current_x, current_y - 1, current_z + 1) not in self.warning_coordinates:
                         current_y -= 1
                         current_z += 1
+                    elif (current_x, current_y - 1, current_z) not in self.warning_coordinates:
+                        current_y -= 1
                     else:
                         self.direction = 0 
-                        print("changed direction to 0")
                 # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
                 self.k += 1
                 
-                print(f"new current is ({current_x}, {current_y}, {current_z})")
-                print(time.sleep(8))
+                print(f"new current is ({current_x}, {current_y}, {current_z}) with {self.warning_coordinates}")
 
 
 
@@ -246,11 +220,11 @@ class Controller:
         # If warning = True, then increment start_k to prevnt future moves this clock cycle and start_k will be reset at next clock cycle
         # If warning = False, then increment k to indicate that a move has been made at this clock cycle 
         if self.k == 0:
-            if not self.warning:
+            if (current_x + 1, current_y, current_z + 1) not in self.warning_coordinates:
                 current_x += 1
                 current_z += 1
                 self.k = 1
-            elif self.warning:
+            else:
                 self.start_k += 1
 
 
@@ -274,16 +248,16 @@ class Controller:
         # This task ensures that there is enough space to land in the x and y direction
         # If landing = "x", and the altiitude z is greater than distance of the x-value from its target destination, then there is not enough room to land (same if landing = "Y" with y values)
         if self.start_k == self.k and ((self.landing == "x" and current_z > abs(current_x - target_x)) or (self.landing == "y" and current_z > abs(current_y - target_y))):
-            if self.self.landing == "x":
+            if self.landing == "x":
                 # If landing in x-directions (0 or 180) then we need to move or rotate in one of those directions to give aircraft more space to land
                 if self.direction == 0:
                     current_x += 1
-                elif direction == 90:
+                elif self.direction == 90:
                     self.direction = 0
-                elif direction == 180:
+                elif self.direction == 180:
                     current_x -= 1
                 elif self.direction == 270:
-                    direction = 0
+                    self.direction = 0
             elif self.landing == "y":
                 # If landing in y-directions (90 or 270) then we need to move or rotate in one of those directions to give aircraft more space to land
                 if self.direction == 0:
@@ -299,7 +273,7 @@ class Controller:
 
 
 
-
+        print(self.warning_coordinates)
         ##############################
         ## Task H
         ##############################
@@ -313,7 +287,8 @@ class Controller:
                 # self.landing state variable is in 0 or 180 direction and the descent distance is ideal since both x and z change values for descent, and the y-value is the same as the targest destination
                 # If needed, adjust the direction of flight or changing the x-value as needed to get 0 or 180 degrees
                 # If correct direction, then change x-value and decrement z-value
-                if current_x < target_x:
+                if current_x < target_x and (current_x + 1, current_y, current_z - 1) not in self.warning_coordinates:
+                    print(f"entering 1 with {self.warning_coordinates}")
                     # since the current_x is less than the target_x, we need to be in 0 degrees direction, so we either adjust direction angle by factor of 90 or if 0, then increment current_x
                     if self.direction == 0:
                         current_x += 1
@@ -324,7 +299,9 @@ class Controller:
                         self.direction = 90
                     elif self.direction == 270:
                         self.direction = 0
-                elif current_x > target_x:
+                    
+                elif current_x > target_x and (current_x - 1, current_y, current_z - 1) not in self.warning_coordinates:
+                    print(f"entering 2 with {self.warning_coordinates}")
                     # since the current_x is greater than the target_x, we need to be in 180 degrees direction, so we either adjust direction angle by factor of 90 or if 180, then decrement current_x
                     if self.direction == 0:
                         self.direction = 90
@@ -334,8 +311,16 @@ class Controller:
                         current_x -= 1
                         current_z -= 1
                     elif self.direction == 270:
-                        self.direction == 180
-                
+                        self.direction = 180
+                else:
+                    if self.direction == 0:
+                        self.direction = 90
+                    elif self.direction == 90:
+                        self.direction = 180
+                    elif self.direction == 180:
+                        self.direction = 270
+                    elif self.direction == 270:
+                        self.direction = 0
 
             elif current_x < target_x:
                 # if the current x position of the aircraft is less than the target x, then the aircraft should be in the 0 degrees direction
@@ -361,6 +346,7 @@ class Controller:
                     current_x -= 1
                 elif self.direction == 270:
                     self.direction = 180
+
             
             # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
             self.k += 1
@@ -368,11 +354,12 @@ class Controller:
         elif self.start_k == self.k and (abs(current_y - target_y) <= abs(current_x - target_x) or current_x == target_x) and current_y != target_y and current_z != 0: 
             # Distance of the y's is less than the distance of the x's so now we prioritize the the y position of the aircraft given that the current_y is not already at target y and z is not 0
             # This code now either changes the direction of flight or moves the aircraft in the positive or negative y-direction
-            if self.landing == "y" and abs(current_y - target_y) == current_z and current_x == target_x:
+            if self.landing == "y" and abs(current_y - target_y) == current_z and current_x == target_x: 
                 # landing state variable is in 90 or 270 direction and the descent distance is ideal since both y and z change values for descent, and the x-value is the same as the targest destination
                 # If needed, adjust the direction of flight or changing the x-value as needed to get 90 or 270 degrees
                 # If correct direction, then change x-value and decrement z-value
-                if current_y < target_y:
+                if current_y < target_y and (current_x, current_y + 1, current_z - 1) not in self.warning_coordinates:
+                    print(f"entering 3 with {self.warning_coordinates}")
                     # since the current_y is less than the target_y, we need to be in 90 degrees direction, so we either adjust direction angle by factor of 90 or if 90, then increment current_y
                     if self.direction == 0:
                         self.direction = 90
@@ -383,7 +370,8 @@ class Controller:
                         self.direction = 90
                     elif self.direction == 270:
                         self.direction = 0
-                elif current_y > target_y:
+                elif current_y > target_y and (current_x, current_y - 1, current_z - 1) not in self.warning_coordinates:
+                    print(f"entering 4 with {self.warning_coordinates}")
                     # since the current_y is greater than the target_y, we need to be in 270 degrees direction, so we either adjust direction angle by factor of 90 or if 270, then decrement current_y
                     if self.direction == 0:
                         self.direction = 270
@@ -394,6 +382,15 @@ class Controller:
                     elif self.direction == 270:
                         current_y -= 1
                         current_z -= 1
+                else:
+                    if self.direction == 0:
+                        self.direction = 90
+                    elif self.direction == 90:
+                        self.direction = 180
+                    elif self.direction == 180:
+                        self.direction = 270
+                    elif self.direction == 270:
+                        self.direction = 0
             elif current_y < target_y:
                 # if the current y position of the aircraft is less than the target y, then the aircraft should be in the 90 degrees direction
                 # if the direction of flight is not already at 90 degrees, then change the direction by a factor of 90 degrees in order to be at 90 degrees or closer to it
@@ -418,6 +415,15 @@ class Controller:
                     self.direction = 270
                 elif self.direction == 270:
                     current_y -= 1
+            else:
+                if self.direction == 0:
+                    self.direction = 90
+                elif self.direction == 90:
+                    self.direction = 180
+                elif self.direction == 180:
+                    self.direction = 270
+                elif self.direction == 270:
+                    self.direction = 0
             # increment k by 1 to indicate that an action has been performed by the aircraft during this clock cycle
             self.k += 1
 
