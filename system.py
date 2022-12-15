@@ -10,7 +10,7 @@ from controller import Controller # import class Controller from controller.py i
 # max value is 500 to prevent too much congestion since area is 50 km by 50 km
 # if exceed 500 planes, it may take a long time to randomly assign unique initial and target positions in 50 km by 50 km area
 #n = int(input("Enter the number of planes to run in the simulation (max is 500): "))
-n = 50
+N = 50
 
 
 ################################
@@ -26,7 +26,7 @@ def random_initials():
     # target_locations is a dictionary that keeps track of all the target locations (x, y, z) of all aircrafts in the simulation
     target_locations = {}
     # loop through each plane from 1 to n (number of planes)
-    for i in range(1, n + 1):
+    for i in range(1, N + 1):
         current_x, current_y, target_x, target_y = random.randint(0, 50), random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)
         current_z = 0
         # Assumption that the takeoff and landing destinations must be at least 1 km apart since the initial position != target position
@@ -67,7 +67,7 @@ def random_initials():
 def get_plane_info():
     plane_ids = []
     all_reached = {}
-    for i in range(1, n + 1):
+    for i in range(1, N + 1):
         all_reached["plane_" + str(i)] = False
         plane_ids.append("plane_" + str(i))
     return plane_ids, all_reached
