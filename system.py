@@ -18,43 +18,43 @@ N = 50
 ################################
 # This randomizes the initial and target x and y values between the values of  0 and 50 (bounds) 
 # Returns two dictionarys:
-    # current_locations = {"plane_#": (current_x, current_y, current_z), ...}
+    # current_locations = {"plane_#": (initial_x, initial_y, initial_z), ...}
     # target_locations = {"plane_#": (target_x, target_y), ...} *** all target_z will be 0 since landing on ground
 def random_initials():
     # current_locations is a dictionary that keeps track of all the current locations (x, y, z) of all aircrafts in the simulation
-    current_locations = {}
+    initial_locations = {}
     # target_locations is a dictionary that keeps track of all the target locations (x, y, z) of all aircrafts in the simulation
     target_locations = {}
     # loop through each plane from 1 to n (number of planes)
     for i in range(1, N + 1):
-        current_x, current_y, target_x, target_y = random.randint(0, 50), random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)
-        current_z = 0
+        initial_x, initial_y, target_x, target_y = random.randint(0, 50), random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)
+        initial_z = 0
         # Assumption that the takeoff and landing destinations must be at least 1 km apart since the initial position != target position
         # This loop ensures that this assumption remains true without having to manually set values each simulation
-        while abs(current_x - target_x) < 1 or abs(current_y - target_y) < 1:
-            print(f"current_x {current_x}, target_x {target_x}, current_y {current_y}, target_y {target_y}")
-            if abs(current_x - target_x) < 1:
+        while abs(initial_x - target_x) < 1 or abs(initial_y - target_y) < 1:
+            print(f"initial_x {initial_x}, target_x {target_x}, initial_y {initial_y}, target_y {target_y}")
+            if abs(initial_x - target_x) < 1:
                 target_x = random.randint(0, 50)
-            if abs(current_y - target_y) < 1:
+            if abs(initial_y - target_y) < 1:
                 target_y = random.randint(0, 50)
         # This loop statement ensures that all current starting locations and target locations is unique. If not, reassign numbers until unique
-        while (current_x, current_y, current_z) in current_locations.values() or (target_x, target_y) in target_locations.values():
-            current_x, current_y, target_x, target_y = random.randint(0, 50), random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)
-            current_z = 0
+        while (initial_x, initial_y, initial_z) in initial_locations.values() or (target_x, target_y) in target_locations.values():
+            initial_x, initial_y, target_x, target_y = random.randint(0, 50), random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)
+            initial_z = 0
             # Assumption that the takeoff and landing destinations must be at least 1 km apart since the initial position != target position
             # This loop ensures that this assumption remains true without having to manually set values each simulation
-            while abs(current_x - target_x) < 1 or abs(current_y - target_y) < 1:
-                print(f"current_x {current_x}, target_x {target_x}, current_y {current_y}, target_y {target_y}")
-                if abs(current_x - target_x) < 1:
+            while abs(initial_x - target_x) < 1 or abs(initial_y - target_y) < 1:
+                print(f"initial_x {initial_x}, target_x {target_x}, initial_y {initial_y}, target_y {target_y}")
+                if abs(initial_x - target_x) < 1:
                     target_x = random.randint(0, 50)
-                if abs(current_y - target_y) < 1:
+                if abs(initial_y - target_y) < 1:
                     target_y = random.randint(0, 50)
         # add the unique current starting position to current_locations dictionary for that specific plane
-        current_locations["plane_{0}".format(i)] = (current_x, current_y, current_z)
+        initial_locations["plane_{0}".format(i)] = (initial_x, initial_y, initial_z)
         # add the unique target destination to target_locations dictionary for that specific plane
         # do not need target_z since it is always 0 since on ground
-        target_locations["plane_{0}".format(i)] = (target_x, target_y)
-    return current_locations, target_locations
+        target_locations["plane_{0}".format(i)] = (target_x, target_y, 0)
+    return initial_locations, target_locations
 
 
 ##############################################
@@ -64,13 +64,13 @@ def random_initials():
 # Returns two data structures:
     # all_reached = {"plane_#": False, ...}  -> for the synchronous system to see when all planes have reached the target destination to "turn off" system
     # plane_ids = [plane_1, plane_2, ... plane_n] -> list the unique plane_ids for python program to keep track of which controller for what plane is running
-def get_plane_info():
+def get_plane_info(initial_locations):
     plane_ids = []
-    all_reached = {}
+    all_aircrafts = {}
     for i in range(1, N + 1):
-        all_reached["plane_" + str(i)] = False
         plane_ids.append("plane_" + str(i))
-    return plane_ids, all_reached
+        all_aircrafts["plane_" + str(i)] = initial_locations["plane_" + str(i)]
+    return plane_ids, all_aircrafts
 
 
 ##############################################
@@ -79,11 +79,11 @@ def get_plane_info():
 # This creates a new controller by making a new instance of Controller() from controller.py for each unique plane_id
 # Initializes the state variables for that controller by plane.__init__() 
 # Returns list of the memory location of that controller for that plane
-def get_controllers(plane_ids):
+def get_controllers(plane_ids, target_locations):
     plane_controllers = []
     for plane in plane_ids:
-        plane = Controller()
-        plane.__init__()
+        target_x, target_y, target_z = target_locations[plane]
+        plane = Controller(target_x, target_y)
         plane_controllers.append(plane)
     return plane_controllers
 
@@ -97,42 +97,35 @@ if __name__ == '__main__':
 
 
     # functions to set up the synchronous system for amount of planes chosen
-    current_locations, target_locations = random_initials()
-    plane_ids, all_reached = get_plane_info()
-    plane_controllers = get_controllers(plane_ids)
+    initial_locations, target_locations = random_initials()
+    plane_ids, all_aircrafts = get_plane_info(initial_locations)
+    plane_controllers = get_controllers(plane_ids, target_locations)
 
     # dictionary to keep track of the other locations (x,y,z) for a specific plane id
     # used as input for each controller so the current aircraft can know where other aircraft are
     # starts as an initial list, but will be other_aircraft = {"plane_1": (x, y, z), ..., "plane_n": (x, y, z)}
-    other_aircraft = {}
 
     # The synchronous system will keep running until all planes have reached their target destination
-    while not all(value == True for value in all_reached.values()):
+    #while not all(value == True for value in all_reached.values()):
+    while len(all_aircrafts) != 0:
+        print("\nNEW CLOCK CYCLE")
         for i, plane in enumerate(plane_controllers):
-            # retrieves the target x and y coordinates for that specific plane to be used as input for that controller
-            target_x, target_y = target_locations[plane_ids[i]]
-            # retrieves the current x, y, and z coordinates for that specific plane to be used as input for that controller
-            current_x, current_y, current_z = current_locations[plane_ids[i]]
-            if all_reached[plane_ids[i]] == False:
+            plane_id = plane_ids[i]
+
+            if plane_id in all_aircrafts.keys():
                 # Runs if that plane_id has not reached its target destination
-                print(f"\nPLANE CONTROLLER: {plane_ids[i]}")
                 # want to remove the current plane's location from other_aircraft for this clock cycle 
-                if plane_ids[i] in other_aircraft.keys():
-                    del other_aircraft[plane_ids[i]]
+
                 # input for that controller with plane_id with the correct inputs as arguments and the returned variables as the output
-                reached, out_x, out_y, out_z = plane.ClockCycle(current_x, current_y, current_z, target_x, target_y, other_aircraft)
+                all_aircrafts = plane.ClockCycle(plane_id, all_aircrafts)
+                
                 # print output to the terminal
-                print(f"\tout_x: {out_x}")
-                print(f"\tout_y: {out_y}")
-                print(f"\tout_z: {out_z}")
-                print(f"\treached: {reached}")
-                # update the current location of that plane_id so that it can be the input for the next clock cycle for that controller
-                current_locations[plane_ids[i]] = (out_x, out_y, out_z)
-                # update the current location of that aircraft and add it back to the dictionary other_aircraft
-                other_aircraft[plane_ids[i]] = (out_x, out_y, out_z)
-                if reached == True:
+                print(f"{plane_id}: {all_aircrafts[plane_id]}")
+
+                if all_aircrafts[plane_id] == target_locations[plane_id]:
                     # if that plane_id has reached its targest destination, then change its value as True in all_reached
                     # we then want to take that plane_id out of messaging its location with other plane_id
-                    del other_aircraft[plane_ids[i]]
-                    all_reached[plane_ids[i]] = True
-    print("All planes have reached their target destination without collision.")            
+                    #del other_aircraft[plane_id]
+                    del all_aircrafts[plane_id]
+                    #all_reached[plane_id] = True
+    print("\nAll planes have reached their target destination without collision.")            
