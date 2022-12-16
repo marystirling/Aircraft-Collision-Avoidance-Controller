@@ -30,7 +30,7 @@ class Controller:
         # initialized as start_k = 0 since starting at the first clock cycle
         self.start_k = 0
 
-        # landing of type string tells which value will be decremented while landing (x or y)
+        # landing of type string tells which value will be changed while landing (x or y)
         # the process of landing the aircraft decrements both the z-value and the x or y values so we want to be sure that there is enough distance from one to land successfully
         # if landing = x, then landing will occur in either the 0 or 180 degree direction
         # if landing = y, then landing will occur in either the 90 or 270 degree direction
