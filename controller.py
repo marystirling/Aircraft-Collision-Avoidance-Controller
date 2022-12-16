@@ -21,7 +21,7 @@ class Controller:
         # collision of type boolean to indicate whether there has been a collision with this aircraft
             # if collision = False, then no collision -> liveness properties ensures that this is always 0
             # if collision = True, then collision -> another aircraft within 2d boundary  
-        # Algorithm ensures that this will never change to True -> only used as a safety monitor and for testing purposes 
+        # Algorithm ensures that this will never change to True -> only used for testing purposes 
         self.collision = False
 
         # k of type int to indicate what clock cycle the controller is going through
@@ -39,12 +39,6 @@ class Controller:
         # landing is initialized to none since we do not the distances from the current location to the targest destination for both the x's and y's
         self.landing = None
 
-
-        # reached of type boolean to indicate whether or not the aircraft has reached its targest destination or not
-        # initialized as reached = False since aircraft starts in a different location than its targest destination
-        # when reached = True, aircraft controller will stop as the aircraft would have landed
-        self.reached = False
-
         # warning_cube is a list of tuple (x, y, z) coordinates to indiciate the coordinates around the current aircraft that are potential warning points
         # initialized as an empty list, but reset every clock cycle to collect the (x,y,z) points that are on the warning zone boundary of the current aircraft
         # used to compare to other aircraft coordinates to see if there is a match in order to perform a collision avoidance maneuver
@@ -55,9 +49,16 @@ class Controller:
         # if the list is nonempty at a clock cycle, then a collision avoidance maneuver is needed
         self.warning_coordinates = []
 
+        # current_x, current_y, current_z of type int indicate the (x, y, z) coordinate of the current aircraft controller that is running
+        # current_x and current_y initialized to None since retrieve values from the all_aircrafts input variable
+        # current_z initialized to 0 since initial position is taking off from the ground
         self.current_x = None
         self.current_y = None
-        self.current_z = None
+        self.current_z = 0
+
+        # target_x and target_y of type int indicate the x and y coordinates of the current aircraft controller that is running
+        # both initialized by the parameters target_x and target_y that is passed in
+        # no need for target_z variable since it is 0 for all aircrafts since landing on ground
         self.target_x = target_x
         self.target_y = target_y
 
@@ -65,10 +66,22 @@ class Controller:
     #############################
     ## CONTROLLER COMPONENT
     #############################
+    # input to each controller is the plane_id and all_aircrafts
     def ClockCycle(self, plane_id, all_aircrafts):
 
         ##############################
-        ## Task A 
+        ## Task A
+        ##############################
+        # this retrieves the specific current (x, y, z) of the plane_id from all_aircrafts to get its current location 
+        self.current_x, self.current_y, self.current_z = all_aircrafts[plane_id]
+        # want to remove the current plane's location from other_aircraft for this clock cycle in order to calculate aircrafts near to plane in future task
+        if plane_id in all_aircrafts.keys():
+            del all_aircrafts[plane_id]
+    
+
+
+        ##############################
+        ## Task B
         ##############################
         # this helps keep track that only one move of the aircraft is made each clock cycle 
         # will be used as a comparison at future tasks so that it only executes if no other move has been done
@@ -76,15 +89,10 @@ class Controller:
         # future action tasks can only occur if k == start_k 
         self.start_k = self.k
 
-        self.current_x, self.current_y, self.current_z = all_aircrafts[plane_id]
-
-        # want to remove the current plane's location from other_aircraft for this clock cycle 
-        if plane_id in all_aircrafts.keys():
-            del all_aircrafts[plane_id]
-      
+       
 
         ##############################
-        ## Task B
+        ## Task C
         ##############################
         # Given the current position, it generates the boundary of the warning zone which is a cube with edges of 2 km and the current aircraft at the center as (self.current_x, self.current_y, self.current_z)
         # Since each edge is 2 km, the warning zone is one coordinate space away from current aircraft or its vertices since 1 coordinate point moves 1 km at a time
@@ -97,16 +105,17 @@ class Controller:
                         (self.current_x, self.current_y + y, self.current_z + z),
                         (self.current_x + 1, self.current_y + y, self.current_z + z),
                     ])
+        # calculated cube includes current location, so need to remove
         self.warning_cube.remove((self.current_x, self.current_y, self.current_z))
         
 
         
         ##############################
-        ## Task C
+        ## Task D
         ##############################
         # This reports that a collision has occured
         # Collision occurs if aircraft goes within the warning zone, so if the current aircraft coordinates equal another 
-        # This is used as a safety monitor and testing purposes
+        # This is used for testing purposes
         # Algorithm and liveness properties ensures that this will never execute
         for coordinate in all_aircrafts.values():
             # OUR SYSTEM ENSURES THAT THERE ARE NO COLLISIONS SO THIS SHOULD NEVER BE TRUE
@@ -118,7 +127,7 @@ class Controller:
 
 
         ##############################
-        ## Task D
+        ## Task E
         ##############################
         # See if another aircraft is in the warning zone of the current aircraft
         # if there is another aircraft and that aircraft is at the warning zone boundary, then changes warning to True so that future task can execute collision avoidance maneuver
@@ -133,7 +142,7 @@ class Controller:
 
  
         ##############################
-        ## Task E
+        ## Task F
         ##############################
         # This task simulates a potential collision avoidance maneuver if there is another aircraft and a warning. 
         # It looks at the coordinates in warning_coordinates
@@ -145,10 +154,10 @@ class Controller:
             for point in self.warning_coordinates:
                 if point[2] == self.current_z:
                     self.warning = True
-                    # If this is changed vback to True, then need to perform some collision maneuver
+                    # If this is changed back to True, then need to perform some collision maneuver
                     # Else, the aircraft will resume to normal actions 
             if self.warning: 
-            #First, check direction plane is in, then perform the necessary maneuver in order of this precedence: 
+            #First, check direction the plane is in, then perform the necessary maneuver in order of this precedence: 
                 # 1. If the next descent is the target location, then land the aircraft
                 # 2. If the coordinate space for the aircraft to ascend by one coordinate space is available, then fly aircraft in upward direction
                 # 3. If the next space forward in direction flying is free on same z-value, then move forward by one coordinate space in x or y direction (depends on direction)
@@ -204,13 +213,13 @@ class Controller:
 
 
         ##############################
-        ## Task F
+        ## Task G
         ##############################
         # This task simulates taking off of the current aircraft if k = 0 (meaning it is the first clock cycle)
         # Can only take off if there is no other aircraft in the upward space the current aircraft will occupy
-        # Takes off while in the 0 degrees self.direction so the x and z value of the current location will increment by 1
-        # If takeoff clear, then increment start_k to prevnt future moves this clock cycle and start_k will be reset at next clock cycle
-        # If takeoff not clear, then increment k to indicate that a move has been made at this clock cycle 
+        # Takes off while in the 0 degrees self.direction so the x and z value of the current location will both increment by 1
+        # If takeoff not clear, then increment start_k to prevnt future moves this clock cycle and start_k will be reset at next clock cycle
+        # If takeoff clear, then increment k to indicate that a move has been made at this clock cycle 
         if self.k == 0:
             if (self.current_x + 1, self.current_y, self.current_z + 1) not in self.warning_coordinates:
                 self.current_x += 1
@@ -222,9 +231,9 @@ class Controller:
 
 
         ##############################
-        ## Task G
+        ## Task H
         ##############################
-        # This task focuses on the descent of the aircraft to its targest destination.
+        # This task focuses on the direction of descent of the aircraft to its targest destination.
         # Depending on the direction of the aircraft, descent decrements the z-value and either the x or y value of the aircraft
         # Descent is ideal if the length from either the x or y distance from the current location to the targest destination equals the altitude (z-value)
         if abs(self.current_x - self.target_x) <= abs(self.current_y - self.target_y):
@@ -235,7 +244,7 @@ class Controller:
             self.landing = "x"
 
         ##############################
-        ## Task H
+        ## Task I
         ##############################
         # This task ensures that there is enough space to land in the x and y direction
         # If landing = "x", and the altiitude z is greater than distance of the x-value from its target destination, then there is not enough room to land (same if landing = "Y" with y values)
@@ -266,7 +275,7 @@ class Controller:
 
 
         ##############################
-        ## Task I
+        ## Task J
         ##############################
         # This task calculates the next move of the aircraft if no previous move has been made (collision avoidance, landing to target, takeoff)
         # We first check which x or y distance is less than the distance from the target location and prioritize that direction first
@@ -411,18 +420,9 @@ class Controller:
 
 
         ##############################
-        ## Task J
-        ##############################
-        # Task that outputs the current x, y, and z values of the current aircraft
-        # all output of type int 
-        all_aircrafts[plane_id] = (self.current_x, self.current_y, self.current_z)
-
-
-        ##############################
         ## Task K
         ##############################
-        # check whether the output (x, y, z) is equal to the target destination values
-        # if output (x, y, z) = target (x, y, 0), then state variable reached = True which breaks out of the loop (simulating the turning off of this aircraft controller)
-        
-        # exit this controller and return the output to the synchronous system in system.py
+        # Task that updates the current position of the plane with plane_id in all_aircrafts
+        # This task outputs all_aircrafts
+        all_aircrafts[plane_id] = (self.current_x, self.current_y, self.current_z)
         return all_aircrafts
